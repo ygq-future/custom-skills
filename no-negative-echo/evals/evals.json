@@ -1,0 +1,23 @@
+{
+  "skill_name": "no-negative-echo",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We originally planned to run the collector as a Windows service, but changed the final architecture to two normal user processes: collector + UI. The implementation is finished. Write the commit subject, PR title, and a one-paragraph PR summary.",
+      "expected_output": "Names the accepted dual-process architecture directly and does not advertise the discarded Windows-service proposal unless it is genuinely needed for repository-level context.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Review these names after a requirements correction: feature title `Settings page (no legacy dialog)`, test `test_does_not_use_legacy_dialog`, comment `// We no longer use the old dialog here`. The final product simply has a Settings page. Rewrite only what should change.",
+      "expected_output": "Rewrites the title, test, and comment around current Settings-page behavior without preserving the discarded dialog as conversational residue.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Check for negative echo, but do not erase useful history: `test_rejects_unsigned_plugin`, release note `Removed config schema v1; migrate to v2 before upgrading`, ADR section `Rejected SQLite because deployments require human-readable files`, and commit `feat(config): add JSON settings (without SQLite)`.",
+      "expected_output": "Keeps the security test, migration note, and ADR rationale as legitimate durable context, while rewriting the commit to describe JSON settings positively without echoing SQLite.",
+      "files": []
+    }
+  ]
+}
