@@ -32,5 +32,6 @@ Wire the repository's pinned Prettier check into the format stage of the unified
 Reuse package scripts behind `npm run quality`, `pnpm quality`, or the project's equivalent. Resolve the package manager from repository evidence. Invoke all intended workspace packages and fail on missing required scripts; do not let an if-present/empty workspace filter create a passing gate. Generate framework declarations before their consumers.
 
 Use frozen/immutable install semantics appropriate to the package manager in bootstrap/CI to validate locks. Check manifest, export/type entrypoints, runtime engine constraints, and relevant framework/config schemas. A dependency vulnerability scan is not a replacement for these checks.
+For desktop (e.g. Electron, Tauri frontend) or CLI applications, identify the canonical application version source (often root `package.json`). UI display, User-Agent, and packaging manifests must derive from or synchronize with that source; verify that release builds assert parity across all consumer manifests.
 
 Editor suggestions and language-service plugins may have no CLI equivalent. Record the specific rule family and extension rather than claiming parity from `tsc`. Add the React overlay when applicable; research the official equivalent for Vue, Svelte, Angular, or other frameworks instead of assuming plain TS covers their templates.

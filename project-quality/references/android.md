@@ -15,5 +15,6 @@ Reuse Kotlin/Java formatting and compiler analysis. Add detekt or another analyz
 A root Gradle quality task can depend on format checks, relevant compile/lint/analyzer tasks, JVM unit tests, and required assembly. Inspect existing `check`, `test`, and `build` task dependencies first to avoid duplicate invocation or missing subprojects.
 
 Record which variants and SDK targets the gate validates. Validate merged manifests, resources, dependency/configuration files, and the relevant production artifact. Avoid requiring signing credentials when an unsigned validation artifact satisfies the contract; do not silently replace a required release check with debug success.
+For application release builds, distinguish Android `versionCode` (a monotonically increasing integer required by app stores) from `versionName` (which maps to the canonical application version). The gate verifies `versionName` synchronizes with the canonical application version without forcing `versionCode` to match the SemVer string literally.
 
 Instrumented tests need an emulator/device and form a separate declared job when required. Lack of an SDK/device means blocked/partial verification, not passing skipped tests. Android Studio can expose inspections absent from Gradle lint; name the remaining diagnostic families and any version mismatch.

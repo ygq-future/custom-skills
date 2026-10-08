@@ -19,6 +19,7 @@ Record each row in the project quality document (or the response for audit-only 
 | Tests | Real discovered tests, required suites, runtime warnings, and prerequisites |
 | Build validation | Production/release or library artifact for supported target scope |
 | Dependency / manifest / configuration | Consistent manifests/locks, valid project/tool configuration, reproducible resolution |
+| Application version consistency | Canonical application version source, synchronized consumers, distinct version domains, and release metadata validation |
 | Commit message validation | Existing convention or chosen convention, message/range inputs |
 | Git hooks | Installed and executable local integration with defined responsibilities |
 | CI Quality Gate | Shared entrypoint and required scope on the actual CI platform |
@@ -28,10 +29,11 @@ Use statuses **verified**, **configured but unverified**, **missing**, **blocked
 For such a starter, report **bootstrap infrastructure verified; application tests pending** if the other applicable checks pass. State the activation condition in agent instructions: adding the first behavior requires a real test task before that implementation is complete. Once behavior exists, missing tests remain a gap; the starter exception does not apply to an existing untested application.
 
 For interpreted apps, validate import/package/runtime preparation instead of inventing a compiler. For public libraries, assess API/source/binary compatibility against an explicit release baseline when that is part of their support contract. Configuration validation includes meaningful framework/build schema checks; JSON/YAML parsing alone does not prove configuration semantics. Vulnerability/license scans are separate risk-policy capabilities; add them when appropriate, not as a substitute for manifest validation.
+When a project ships as an application, CLI, or multi-platform product, evaluate whether it defines a single canonical application version source and keeps consuming manifests, update metadata, and UI surfaces synchronized without accidental drift.
 
 ## Mandatory Web Search for version selection
 
-This procedure is mandatory when recommending, introducing, replacing, upgrading, or choosing to pin a version of any quality tool, library, plugin, analyzer, formatter, test runner, or hook/commit validator. It applies during audits as well as implementation, across every language profile.
+This procedure governs the **tool and dependency version domain** (selecting third-party quality utilities, linters, analyzers, and plugins). It is distinct from the project's own product or application version domain. It is mandatory when recommending, introducing, replacing, upgrading, or choosing to pin a version of any quality tool, library, plugin, analyzer, formatter, test runner, or hook/commit validator. It applies during audits as well as implementation, across every language profile.
 
 1. Read the project's actual resolved versions and constraints from manifests, lockfiles, wrappers, toolchain files, and available version commands. Include runtime/SDK/compiler, framework, build system, package manager, host tools, and relevant plugins. Distinguish declared ranges from installed/resolved versions.
 2. **Perform Web Search for this selection task**, using the tool name, the project's relevant versions, and release/compatibility terms. Find the latest stable candidates and their supported version ranges. Model knowledge, this skill's examples, a previously installed release, or an unverified `latest` tag cannot substitute for the search. Existing search evidence from the same task may be reused while the relevant constraints remain unchanged.
@@ -43,6 +45,46 @@ If Web Search is unavailable, fails, or yields insufficient compatibility eviden
 
 Running an already established, pinned Quality Gate without making a version-selection decision does not require a fresh search or dependency update. This policy governs selection; the gate itself remains reproducible and does not search for or install latest releases at runtime.
 
+## Application version consistency
+
+For projects that produce releases, packages, CLIs, or multi-platform applications, manage product versioning through an explicit contract. Do not reduce this to a naive text search demanding identical `version` strings across all files; instead, separate version domains, define the single source of truth, and validate consumer synchronization before release.
+
+### Version domains
+
+Distinguish distinct version domains explicitly. Never equate these domains or force identical literals across them:
+
+- **Application version**: The public product semantic version (e.g. `1.4.2`).
+- **Dependency, tool, and runtime versions**: Third-party packages, SDKs, toolchains, or compiler versions managed via lockfiles and manifests.
+- **API and protocol versions**: Wire formats, REST/gRPC endpoints, or IPC schema versions (e.g. `v1`, `2026-01-01`).
+- **Database and state migration versions**: Schema migration timestamps, sequential migration numbers, or persistence revisions.
+- **Platform build numbers and internal identifiers**: Platform-specific monotonically increasing integers or build markers (e.g. Android `versionCode`, iOS `CFBundleVersion`, Windows file version build parts). These follow app-store and platform rules rather than semantic version string equality.
+- **Package and installer release revisions**: Downstream package revision tags (e.g. Debian/RPM package release `-1`, container build identifiers).
+
+### Single source of truth (SSOT)
+
+Identify exactly one canonical source for the application version:
+- Common canonical sources: the root package manifest (`package.json`, `Cargo.toml`, `pyproject.toml`, `.csproj`), a top-level `VERSION` file, or build-system configuration.
+- Where frameworks support direct referencing (e.g. Tauri v2 reading from `Cargo.toml` or package config), inherit directly rather than duplicating literals.
+- Where runtime surfaces (UI About dialogs, CLI `--version`, User-Agent strings, telemetry metadata, health endpoints) require the version, inject or derive it from the canonical source at build/compile time (e.g. via bundler `define`, compiler environment variables, code generation, or platform APIs) rather than hardcoding static string literals.
+
+### Synchronized consumers and release metadata
+
+Identify all artifacts, manifests, and surfaces that must stay in lockstep with the canonical application version upon release:
+- Multi-platform manifests (e.g. `tauri.conf.json`, secondary `package.json`, native project files, Electron builder configs).
+- Platform display metadata (e.g. Android `versionName`, iOS `CFBundleShortVersionString`).
+- Updater feeds and release manifests (e.g. auto-updater manifest/signatures, installer script metadata).
+- Release documentation and Git release tags (`vX.Y.Z`).
+
+Unintentional drift between the canonical version and any registered consumer is a quality defect.
+
+### Release Quality Gate validation
+
+The project entrypoint or CI workflow for release builds must provide a non-mutating version consistency check (`check-version-parity` or equivalent verification task). It must:
+1. Extract the canonical application version.
+2. Verify all registered consumers and manifests match the canonical version (or their documented derived mapping, such as `versionName`).
+3. For release/tag builds, verify the target Git tag matches the canonical version exactly.
+4. Detect stale literals or unupdated release metadata before artifact generation.
+5. Fail with a nonzero exit code on any mismatch, blocking artifact publication.
 ## Diagnostic parity
 
 Aim for the useful union of **Compiler + Language Server + IDE + Official Static Analyzer**. Enumerate the relevant diagnostic families: deprecated/obsolete, warnings, unused symbols/imports, unreachable and suspicious code, nullability, unchecked casts/operations, compatibility, type errors, API compatibility, and framework diagnostics.
@@ -71,7 +113,7 @@ An accepted historical baseline yields **pass against baseline**, never **zero d
 
 ## Entrypoint semantics
 
-Define enforcement phases explicitly. The full default command is the complete pre-commit gate for all owned modules and declared development targets, including all applicable core capabilities. Additional platform/device/release configurations may be CI-only when the project's support policy puts them there; they use the same interface with explicit target arguments and remain required before merge/release. This is an upfront contract decision, not a runtime skip or an affected-files shortcut. Preserve existing stronger requirements; do not move a failed pre-commit check to CI merely to permit a commit. Label local success with CI pending accurately rather than claiming all-platform success.
+Define enforcement phases explicitly. The full default command is the complete pre-commit gate for all owned modules and declared development targets, including all applicable core capabilities. Additional platform/device/release configurations may be CI-only when the project's support policy puts them there; they use the same interface with explicit target arguments and remain required before merge/release. Application version consistency validation belongs to the release/publish target or is activated when release tags/bumps are evaluated. This is an upfront contract decision, not a runtime skip or an affected-files shortcut. Preserve existing stronger requirements; do not move a failed pre-commit check to CI merely to permit a commit. Label local success with CI pending accurately rather than claiming all-platform success.
 
 If the project requires every platform before commit, establish a way to validate the final uncommitted tree (for example available runners consuming an identified workspace snapshot). Bind results to the exact content and configuration. If only commit-triggered CI is available, report that as an infrastructure blocker for this stronger requirement instead of constructing a circular commit prerequisite.
 

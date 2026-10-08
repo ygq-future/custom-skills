@@ -56,7 +56,7 @@ Compose profiles per module in mixed repositories. A framework overlay adds capa
 
 ### 3. Map capabilities before choosing tools
 
-Build the coverage matrix defined in the contract. Distinguish missing coverage from disabled rules, inadequate scope, and an existing tool configured too weakly. Name the additional capability and maintenance cost of every proposed tool.
+Build the coverage matrix defined in the contract. Distinguish missing coverage from disabled rules, inadequate scope, and an existing tool configured too weakly. For release-oriented or multi-manifest applications, identify the canonical application version source and consuming metadata. Name the additional capability and maintenance cost of every proposed tool.
 
 Prefer, in order: existing effective checks, compiler/build-system capabilities, official framework/analyzer support, then a mature maintained ecosystem tool. **Whenever selecting or recommending a quality library/tool/plugin version, you MUST use Web Search to establish the latest stable release compatible with the project's actual toolchain.** Follow the [mandatory version-selection procedure](references/quality-contract.md#mandatory-web-search-for-version-selection), including primary-source verification and recorded evidence. Model memory, profile examples, and familiarity with an older release are not version-selection evidence. Profiles are starting points, not permanent installation lists. Verify flags and configuration against the selected release; do not fabricate lockfiles or invent support.
 
@@ -68,7 +68,7 @@ For audit-only requests, assess this design and propose any needed changes; do n
 
 Reuse the existing canonical command where possible, or introduce the smallest entrypoint native to the project (package script, build task, Make/Task target, or repository script). Do not invent native commands such as `go quality` or `cargo quality` without implementing the wrapper/alias.
 
-The full default invocation covers applicable format checks, syntax/type/compiler diagnostics, lint/static analysis, tests, and build/configuration validation. Order cheap checks first unless generation or build dependencies require otherwise. Share task definitions with hooks and CI; avoid maintaining parallel command lists.
+The full default invocation covers applicable format checks, syntax/type/compiler diagnostics, lint/static analysis, tests, build/configuration validation, and application version consistency for release-bound targets. Order cheap checks first unless generation or build dependencies require otherwise. Share task definitions with hooks and CI; avoid maintaining parallel command lists.
 
 Use check-only behavior, pinned tooling, explicit failure propagation, and declared module/target scope as required by the contract. A fast/affected mode can supplement the full gate but must be visibly named and must not become its default. The root interface covers all in-scope modules and exposes explicit CI targets where needed; document the pre-commit and CI responsibilities before wiring them.
 
