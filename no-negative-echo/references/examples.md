@@ -1,134 +1,27 @@
 # Examples and Boundary Cases
 
-Use this reference when a phrase is ambiguous: it contains negative wording, historical context, or a comparison, but it is not obvious whether it is conversation residue.
+Consult this reference when a phrase contains negative wording, historical contrast, or comparison and it is unclear whether it is conversational residue or legitimate domain context.
 
-## Clear negative echo
+## 1. Clear Negative Echo vs. Accepted-State Wording
 
-### Title
+| Surface | Scenario | Conversational Residue (Avoid) | Accepted-State Wording (Prefer) | Why |
+| :--- | :--- | :--- | :--- | :--- |
+| **Title** | Proposed embedded DB → corrected to JSON files | `Settings persistence (no embedded database)` | `Settings persistence` / `JSON settings persistence` | Rejected DB is not part of product vocabulary. |
+| **Commit** | Rejected service design → split into 2 processes | `refactor: replace wrong service design with two processes` | `refactor: separate collector and UI processes` | Repository history tracks resulting boundary, not chat corrections. |
+| **Comment** | Decided against polling in favor of events | `// Do not use polling here; we decided against it.` | `// Subscribe to change notifications so updates stay event-driven.` | Documents current invariant and engineering rationale. |
+| **Test** | Kept settings page, dropped old dialog draft | `test_does_not_open_old_settings_dialog` | `test_opens_settings_page` | Old dialog is not an active contract. |
 
-Conversation:
+## 2. Legitimate Negative or Historical Language (Keep)
 
-- First proposal: add an embedded database.
-- Correction: keep data in flat files.
-- Final implementation: JSON files beside the executable.
+- **Security requirement**: `rejects_unsigned_plugins` — rejection is the observable required behavior.
+- **Regression test**: `test_rejects_duplicate_invoice_number` (when a shipped version previously allowed duplicates) — enforces a durable domain invariant.
+- **Migration release note**: `Removed support for config schema v1; migrate to v2 before upgrading` — users actually depended on v1.
+- **Compatibility comment**: `// Keep CRLF normalization for files produced by v1 Windows clients` — explains surprising code for clients that still exist.
+- **Architecture Decision Record (ADR)**: Explicitly comparing options and recording why Option B was rejected — decision history is the document's purpose.
 
-Bad:
+## 3. Borderline Terms
 
-`Settings persistence (no embedded database)`
-
-Better:
-
-`Settings persistence`
-
-More specific when needed:
-
-`JSON settings persistence`
-
-Why: the rejected database is not part of the final product vocabulary.
-
-### Commit
-
-Bad:
-
-`refactor: replace wrong service design with two processes`
-
-Better:
-
-`refactor: separate collector and UI processes`
-
-Why: the repository cares about the resulting process boundary, not the conversational correction.
-
-### Code comment
-
-Bad:
-
-`// Do not use polling here; we decided against it.`
-
-Better:
-
-`// Subscribe to change notifications so updates remain event-driven.`
-
-Why: the second comment documents the current invariant and its engineering reason.
-
-### Test name
-
-Bad:
-
-`test_does_not_open_old_settings_dialog`
-
-Better:
-
-`test_opens_settings_page`
-
-Why: the old dialog is not a current behavior or contract.
-
-## Legitimate negative or historical language
-
-### Security requirement
-
-`rejects_unsigned_plugins`
-
-Keep it. Rejection is the observable required behavior.
-
-### Regression test
-
-A released version previously allowed duplicate invoices and the test exists to prevent recurrence:
-
-`test_rejects_duplicate_invoice_number`
-
-Keep it. This is a durable domain invariant, not conversation history.
-
-### Migration release note
-
-`Removed support for configuration schema v1; migrate to v2 before upgrading.`
-
-Keep it. Users may actually depend on v1, so the removed state is externally relevant.
-
-### Compatibility comment
-
-`// Keep CRLF normalization for files produced by v1 Windows clients.`
-
-Keep it when those clients still exist. Historical context explains otherwise surprising compatibility code.
-
-### Architecture Decision Record
-
-An ADR explicitly compares alternatives and records why option B was rejected.
-
-Keep the rejected alternative. The document's purpose is decision history.
-
-## Borderline cases
-
-### “Legacy”
-
-`legacy` is acceptable when there is a real legacy interface or compatibility path still present in the system. It is residue when it merely refers to an idea discussed and discarded before shipping.
-
-### “Fallback”
-
-`fallback` is acceptable when runtime behavior genuinely has a primary and secondary path. It is residue when the so-called fallback is simply the only accepted design after another proposal was rejected.
-
-### “New”
-
-`new` is often weak durable naming because it ages badly. Prefer the feature's actual name unless comparison with an existing old version is part of the product contract.
-
-### “No-service”, “non-X”, “without-X”
-
-These names are justified only if X is a meaningful product axis users or maintainers must distinguish. If X exists only in the conversation, name the selected architecture instead.
-
-## Review heuristics
-
-A phrase is likely residue when several of these are true:
-
-- It mentions something absent from the final implementation.
-- It sounds defensive or corrective.
-- It would confuse a new maintainer.
-- It depends on chronological words such as “originally,” “instead,” “anymore,” or “now” without a real migration context.
-- It names the final solution only by what it is not.
-- Removing the rejected concept makes the wording clearer.
-
-A phrase is likely legitimate when several of these are true:
-
-- Users can observe the distinction.
-- The old behavior shipped or still exists somewhere.
-- The constraint protects security, compatibility, data integrity, or a regression.
-- The artifact is explicitly historical (ADR, migration guide, postmortem).
-- A future maintainer needs the contrast to avoid a plausible mistake.
+- **`legacy`**: Valid when a legacy interface/path still exists in the system; residue when referring to an unshipped idea discarded in chat.
+- **`fallback`**: Valid when runtime genuinely has primary + secondary paths; residue when the "fallback" became the sole accepted design.
+- **`new`**: Ages poorly in durable identifiers (`newSettingsPage`); use the actual feature name unless contrasting with a still-present old version.
+- **`no-X` / `non-X` / `without-X`**: Justified only if `X` is a real product/runtime axis users or maintainers must distinguish; otherwise name the chosen architecture.
