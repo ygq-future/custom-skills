@@ -15,4 +15,4 @@ A runner-native `quality` task can compose `ruff format --check`, `ruff check`, 
 
 Validate `pyproject.toml`, lock consistency with the selected manager's check/locked mode, installed dependency compatibility where relevant, and wheel/sdist generation for distributed packages. For an unbundled script/service, use the project's meaningful import/runtime preparation instead of fabricating a distribution target.
 
-Pylance/editor-only features, missing stubs, dynamic imports, and framework metaprogramming can leave gaps. Identify the actual diagnostic family; a successful mypy/Pyright run is not proof that every editor inspection or runtime deprecation is covered.
+When `pyright` or `basedpyright` is available locally, run it in CLI batch mode as the LSP Gate stage (sharing the language server engine used by VS Code/Pylance and Zed) with `reportUnusedParameter`, `reportUnnecessary*`, and `reportDeprecated` enabled so IDE-level warnings/hints fail the gate. Document any residual gaps from missing third-party stubs, dynamic imports, or framework metaprogramming.

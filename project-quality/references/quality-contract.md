@@ -12,6 +12,7 @@ Record each row in the project quality document (or the response for audit-only 
 | Syntax / compile | Parse or compile real project inputs with their build context |
 | Type check | Compiler or ecosystem checker; document dynamic/untyped gaps |
 | Lint | Applicable correctness and project-convention rules |
+| Language server (LSP) batch diagnostics | Headless CLI invocation of the stack's language server (or equivalent analyzer engine) enforcing IDE-grade semantic/AST diagnostics (`warning`/`info`/`hint` for unused params, invalid tags, deprecated APIs, modernize/suspicious constructs) with nonzero exit on findings |
 | Compiler warnings | Enabled categories, severity, and failing exit behavior |
 | Deprecated / obsolete API | References to deprecated APIs, not just deprecated tool configuration |
 | Static analysis | Semantic/dataflow diagnostics beyond parsing and build success |
@@ -85,19 +86,23 @@ The project entrypoint or CI workflow for release builds must provide a non-muta
 3. For release/tag builds, verify the target Git tag matches the canonical version exactly.
 4. Detect stale literals or unupdated release metadata before artifact generation.
 5. Fail with a nonzero exit code on any mismatch, blocking artifact publication.
-## Diagnostic parity
+## Diagnostic parity & LSP Gate
 
-Aim for the useful union of **Compiler + Language Server + IDE + Official Static Analyzer**. Enumerate the relevant diagnostic families: deprecated/obsolete, warnings, unused symbols/imports, unreachable and suspicious code, nullability, unchecked casts/operations, compatibility, type errors, API compatibility, and framework diagnostics.
+Aim for the useful union of **Compiler + Language Server (LSP) + IDE + Official Static Analyzer**. Agent-built-in lightweight LSP navigation tools or basic compile checks (`go build`, `cargo check`, bundler transpilation) typically surface only blocking compile errors while omitting the language server's semantic AST analyzers (`warning`, `info`, `hint`) that IDE clients (Zed, VS Code, JetBrains) stream via `publishDiagnostics`.
+
+**Mandatory Local LSP Gate**: Whenever the local environment provides (or supports installing) a batch CLI for the active stack's language server—such as `gopls check -severity=hint`, `pyright` / `basedpyright`, `vue-tsc` / `svelte-check` / `astro check`, `clangd --check`, or equivalent headless LSP analyzers—you MUST wire it as an explicit stage in the unified Quality Gate rather than treating editor diagnostics as a passive documentation note. Since many LSP CLIs exit `0` even when emitting warnings or hints to stdout, the gate wrapper must inspect captured output and fail with a nonzero exit code whenever actionable diagnostics are emitted.
+
+Enumerate the relevant diagnostic families: deprecated/obsolete, warnings, unused symbols/imports/parameters, unreachable and suspicious code, struct/annotation tags, modernization idioms, nullability, unchecked casts/operations, compatibility, type errors, API compatibility, and framework diagnostics.
 
 For each relevant family:
 
-1. Identify the producer and project version, including IDE plugins and project-specific analyzers when visible.
-2. Find its supported batch CLI or an equivalent rule. Check the actual severity, file inclusion, classpath/type information, target, generated inputs, and exit semantics.
-3. Enable useful missing diagnostics in the selected owner. Warnings in output are not automatically failures; use native severity/threshold settings or structured diagnostic reports with a tested adapter.
-4. Verify representative findings reach the root gate with a nonzero exit. For a claimed deprecated check, use a real supported deprecation marker/reference, not an unrelated syntax error.
-5. Record residual gaps by diagnostic family and producer. An IDE extension being installed, or an LSP starting successfully, is not batch diagnostic evidence. Do not script fragile editor automation or parse localized log text and call it full parity.
+1. Identify the producer and project version, including the local language server, IDE plugins, and project-specific analyzers.
+2. Probe local LSP CLI availability and flags (`--help`), or configure the equivalent batch analyzer rules to match the language server's full analyzer suite (including `info`/`hint` severities that catch real code smells such as unused parameters, no-op struct tags, or redundant allocations). Check actual severity, file enumeration, classpath/type information, target, generated inputs, and exit semantics.
+3. Enable useful missing diagnostics in the selected owner. Convert non-empty LSP diagnostic output or warning counts into a failing gate exit code using native severity/threshold flags or the gate runner's output check.
+4. Verify representative findings reach the root gate with a nonzero exit. For a claimed deprecated or hint-level LSP check, verify with a real representative marker/construct, not an unrelated syntax error.
+5. Record residual gaps only for proprietary IDE-only inspections that genuinely lack a batch CLI or analyzer equivalent. An IDE extension being installed, or an interactive LSP daemon starting for jump-to-definition, is not batch diagnostic evidence.
 
-Use semantic correctness rules as the default. Do not equate every optional IDE style suggestion with a mandatory warning or enable every experimental/pedantic rule. Choose explicit rule sets and target versions so upgrades do not silently redefine the contract.
+Use semantic correctness, unused-code, tag/contract validity, and high-signal modernization rules as the default. Choose explicit rule sets, severity thresholds, and target versions so upgrades do not silently redefine the contract.
 
 ## Warnings and historical debt
 
