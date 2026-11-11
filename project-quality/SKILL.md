@@ -1,6 +1,6 @@
 ---
 name: project-quality
-description: "USER-INITIATED ONLY. NEVER invoke, activate, or apply this skill unless the user explicitly names project-quality and requests its use for the current task, or manually invokes it through the client. Generic quality/setup requests, inferred intent, and another skill or agent are NOT authorization. Once explicitly requested, establish, audit, complete, or maintain a cross-stack quality system with compiler/IDE diagnostics, a unified Quality Gate, and Git/CI integration. Does not replace implementation, code review, or test design."
+description: "USER-INITIATED ONLY. Establish, audit, or maintain a cross-stack quality system with compiler/LSP diagnostics, a unified Quality Gate, and Git/CI integration when explicitly requested."
 disable-model-invocation: true
 ---
 
@@ -79,7 +79,7 @@ In audit-only mode, record outcomes of safe existing checks and proceed to hando
 
 Run changed checks, exercise their failure behavior, and run the full gate. Fix infrastructure failures and problems introduced by this task. Classify pre-existing findings using the contract's debt policy; do not mass-refactor unrelated code. After the last fix, rerun the affected checks and full gate before declaring success.
 
-Update the existing project quality document, or use `docs/agents/quality.md` to match the Matt-style project configuration convention. Record the actual command, prerequisites, capability matrix, diagnostic limits, baseline policy, and verification evidence there. Keep executable task definitions authoritative for command composition; the document explains scope and decisions.
+Update the existing project quality document, or write `docs/quality.md` (or `docs/agents/quality.md` if `docs/agents/` is already in use). Record the actual command, prerequisites, capability matrix, diagnostic limits, baseline policy, and verification evidence there. Keep executable task definitions authoritative for command composition; the document explains scope and decisions.
 
 Add a concise link and the coding-completion rule below to the project's existing agent instructions, updating in place. Respect its chosen instruction-file layout, including `AGENTS.md`, `CLAUDE.md`, or `GEMINI.md`; do not create a parallel instruction file when one already serves the project. If none exists, create a small `AGENTS.md` unless repository conventions specify another location. Initializers may use this skill only when the user explicitly requested `project-quality` for that setup task. They can reference the resulting project contract instead of copying its rules. Persist the Quality Gate command, not an instruction to auto-invoke this skill.
 
