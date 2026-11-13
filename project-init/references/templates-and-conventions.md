@@ -21,7 +21,7 @@ Reference specifications for `project-init`. Adapt commands and paths to the act
 │   └── tasks/                      # Vertical task slices (.gitkeep; consumed by breakdown & impl)
 ├── apps/                           # [Multi-project only] Runnable services/frontends (e.g. apps/web, apps/server)
 ├── packages/                       # [Multi-project only] Shared schemas, contracts, UI primitives, SDKs
-├── scripts/                        # [Multi-project / non-Node only] Single root lifecycle/gate orchestrator
+├── scripts/                        # [When needed] Native-stack root runner (NEVER add a foreign scripting language)
 ├── out/                            # [GITIGNORED] SINGLE root for ALL build, cache, coverage, PID & log artifacts
 │   ├── bin/                        # Compiled native executables (Go, C/C++, CLI binaries)
 │   ├── dist/                       # Bundled web assets, packages, wheels, release archives
@@ -135,22 +135,33 @@ go.sum
 
 ---
 
-## 4. Root-Only Lifecycle Controller Contract (Multi-Project / Service Repos)
+## 4. Native-Stack Entrypoints & Lifecycle Contract (Zero Foreign Runtimes)
 
-- **Single Frontend Project**: Do NOT generate `scripts/ctl.*`. Keep `dev`, `build`, `test`, and `quality` directly in root `package.json` `scripts`.
-- **Multi-Project / Backend-Service Repo**: Centralize process lifecycle in **one** root controller (`scripts/ctl.mjs` for repos containing Node/Bun/Frontend, or `scripts/ctl.py` / `Taskfile.yml` for pure non-Node stacks) wired to root `package.json` or root task runner:
-  1. **`start [--daemon] [--only <name>]` / `dev`**:
-     - Ensure `out/run/` and `out/logs/` exist.
-     - Check `out/run/<name>.json` + port availability first (idempotent: fail clearly or report already running instead of spawning duplicate port-conflicting processes).
-     - In `--daemon` mode: spawn detached with `stdio` redirected to `out/logs/<name>.log`, write `{ "name", "pid", "port", "startedAt" }` to `out/run/<name>.json`, poll readiness (`127.0.0.1:<port>` or health URL with bounded timeout), print concise status, and exit `0` without stealing desktop window focus.
-  2. **`stop [--only <name>]`**:
-     - Read `out/run/<name>.json`. Verify the PID is alive before signaling.
-     - Terminate **only** that process tree: on Windows run `taskkill /PID <pid> /T /F` (after graceful signal attempt if supported); on POSIX signal process group `-pid` (`SIGTERM` → bounded wait → `SIGKILL`).
-     - Wait until the port closes and remove `out/run/<name>.json`. **NEVER** invoke global name-based kills (`taskkill /IM node.exe`, `pkill python`, `killall go`).
+### Hard Rule: Zero Foreign Scripting Languages
+**NEVER** introduce a second language/runtime solely to orchestrate builds, quality checks, packaging, or Git hooks—doing so turns a single-language repository into a polyglot repository and drags in an extra formatter/linter/typechecker stack (e.g., Python `.py` forcing Ruff + Basedpyright + Node onto a Go or Rust repo, or `package.json`/`husky` forcing Node onto a pure Go/Python repo).
+
+| Repository Stack | Canonical Native Runner (Zero Extra Runtime) |
+| :--- | :--- |
+| **JS / TS / Frontend** | Root `package.json` `scripts` directly (add `scripts/ctl.mjs` using Node/Bun stdlib **only** for multi-process orchestration). |
+| **Go / CGO** | Native Go command (`go run ./scripts/ctl <subcmd>` or `./cmd/devctl`) using Go stdlib (`os/exec`, `flag`)—cross-platform and checked by the repo's own `gofmt`/`go vet`/`gopls`. |
+| **Rust** | `.cargo/config.toml` `[alias]` for simple repos, or native `cargo xtask` workspace binary crate when custom cross-platform scripting is required. |
+| **Python** | `pyproject.toml` scripts / `uv run python scripts/ctl.py` inside the project's own `.venv`. |
+| **JVM / .NET / C++** | Native build tool tasks (`./gradlew`, `dotnet`, `cmake --preset` / `ctest`), or an already-installed declarative runner (`Taskfile.yml` / `justfile`) without pulling in Python/Node. |
+| **True Polyglot Repo** | Reuse **one** runtime already required by the application stack (e.g., Node `scripts/ctl.mjs` in a TS+Go repo)—never introduce a third language. |
+
+- **Git Hooks**: Keep local hooks (`pre-commit`, `commit-msg`) as minimal POSIX `#!/bin/sh` shims (`exec <native-root-quality-cmd>`) configured via `git config core.hooksPath .githooks` (or the ecosystem's own hook tool **only** when that ecosystem is already primary). Never add Python `pre-commit` (`pre-commit.com`) to non-Python repos or `husky` to non-Node repos.
+
+### Match Commands to Project Archetype
+- **Libraries, Plugins (CGO `.dll`/`.so`, FFI, Wasm), SDKs & CLI Tools**:
+  - Expose **only** `build` (emitting into `out/bin/` or `out/dist/`), `test`, and `quality` (plus `pack` if needed).
+  - **DO NOT** create `start`, `stop`, `restart`, `status`, `out/run/`, or `out/logs/` daemon scaffolding when there is no long-running background service.
+- **Single Frontend Project**: Keep `dev`, `build`, `test`, and `quality` in root `package.json` `scripts`—create zero `scripts/ctl.*` files.
+- **Long-Running Services & Multi-Service Repos**: Centralize process lifecycle in **one** root native controller exposing:
+  1. **`start [--daemon] [--only <name>]` / `dev`**: Ensure `out/run/` and `out/logs/` exist; check `out/run/<name>.json` + port availability first; in `--daemon` mode spawn detached with output to `out/logs/<name>.log`, write `{ "name", "pid", "port", "startedAt" }` to `out/run/<name>.json`, poll readiness (`127.0.0.1:<port>` or health URL), print concise status, and exit `0` without stealing desktop focus.
+  2. **`stop [--only <name>]`**: Read `out/run/<name>.json`, verify PID liveness, terminate **only** that process tree (Windows `taskkill /PID <pid> /T /F`; POSIX process group `-pid` `SIGTERM` → bounded wait → `SIGKILL`), wait until port closes, and remove `out/run/<name>.json`. **NEVER** invoke global name-based kills (`taskkill /IM node.exe`, `pkill python`, `killall go`).
   3. **`restart`**: Run `stop` followed by `start`.
-  4. **`status`**: Inspect `out/run/*.json`, check live PID + port state, and print a compact table (`service | status | pid | port | log`).
+  4. **`status`**: Inspect `out/run/*.json`, verify live PID + port state, and print `service | status | pid | port | log`.
   5. **`quality`**: Execute the unified `project-quality` gate across all modules (`quiet-on-success`, dumping full captured stdout/stderr immediately on nonzero exit).
-
 ---
 
 ## 5. `.github/` Starter Templates
@@ -252,8 +263,8 @@ jobs:
 
 ## Canonical Commands
 - Install / Sync: `<exact locked install command>`
-- Dev / Start: `<root dev/start command>` (use `--daemon` for headless background start)
-- Stop / Status: `<root stop command>` / `<root status command>`
+- Dev / Start: `<root dev/start command>` (`--daemon` for background; *omit start/stop/status for libraries, plugins & CLIs*)
+- Stop / Status: `<root stop command>` / `<root status command>` *(services/apps only)*
 - Single Test: `<exact targeted test command>`
 - **Unified Quality Gate**: `<exact root quality command>`
 

@@ -30,10 +30,10 @@ Always read [templates-and-conventions.md](references/templates-and-conventions.
 - **Single Build & Runtime Output Directory (`out/`)**:
   - **FORBID** root or per-package output sprawl (`dist/`, `build/`, `target/`, `debug/`, `release/`, `bin/`, `coverage/`).
   - Route **every** build artifact, compiler cache, binary, test report, PID lock, and background log into gitignored subdirectories under root `out/` (`out/dist/`, `out/bin/`, `out/target/`, `out/build/`, `out/coverage/`, `out/run/`, `out/logs/`) using each toolchain's native config (see reference).
-- **Code Layout & Smoke Test**:
+- **Hollow Skeleton & Smoke Test Only (Zero Business Features)**:
   - **Single-project**: Use minimal idiomatic stack layout (`src/`, or `cmd/` + `internal/` for Go).
-  - **Multi-project**: Group runnable targets under `apps/<service>` and shared contracts/SDKs under `packages/<pkg>` (or workspace `crates/` / `internal/`).
-  - Scaffold a minimal runnable entrypoint **plus at least one real smoke unit test** so the initial Quality Gate exercises genuine test execution rather than passing on zero tests. Define one canonical **Application Version SSOT** (root manifest or `VERSION`).
+  - **Multi-project**: Group targets under `apps/<service>` and shared contracts/SDKs under `packages/<pkg>` (or workspace `crates/` / `internal/`).
+  - Scaffold **only** a hollow framework stub (e.g., version/metadata export or minimal health/no-op entrypoint) **plus one real smoke unit test** so the initial Quality Gate runs genuine tests, and define one **Application Version SSOT**. **Do NOT implement product business logic or pending task specs (`docs/tasks/` or Issues) during initialization**—keep any existing task items untouched as `pending`.
 
 ### 3. Initialize Git Baseline & `.github/` Governance
 - Run `git init -b main` if `.git/` is missing.
@@ -43,13 +43,12 @@ Always read [templates-and-conventions.md](references/templates-and-conventions.
   - `.github/workflows/release.yml` (`permissions: contents: write`): Runs on `v*.*.*` tags; enforces tag-to-SSOT version parity + root `quality` gate, reads `.github/release-note/`, and packages artifacts from `out/` (defaulting to a safe `draft: true` release skeleton until publishing targets are finalized).
   - `.github/release-note/template.md`: Standard release-note template (`Highlights`, `Breaking Changes`, `Features`, `Fixes`, `Upgrade Notes`).
 
-### 4. Wire Root-Only Lifecycle Orchestration
-- **Single Frontend / Node App**: Manage `dev`, `build`, `test`, and `quality` solely via root `package.json` `scripts`—create zero extra wrapper scripts.
-- **Multi-Project / Polyglot Repo**: **NEVER place `.sh`, `.ps1`, or `.bat` startup scripts inside subdirectories.** Centralize lifecycle control at the repository root:
-  - Repos with JS/TS/Frontend: Root workspace `package.json` delegating to one zero-dependency cross-platform script `scripts/ctl.mjs` (Node/Bun built-ins).
-  - Non-Node multi-service repos: Root `Taskfile.yml` / `justfile` or one zero-dependency cross-platform `scripts/ctl.py`.
-  - Expose five uniform root commands: `dev` / `start [--daemon] [--only <svc>]`, `stop`, `restart`, `status`, and `quality`.
-  - **Safe Process & Non-Intrusive Rules**: Record `{ pid, port, cmd, startedAt }` in `out/run/<svc>.json` and write daemon logs to `out/logs/<svc>.log`. `stop` kills **only** verified project process trees and confirms port release (never global `killall`/`taskkill /IM`). Background runs must never open visible GUI/browser windows or steal desktop focus.
+### 4. Wire Root-Only Entrypoints (Zero Foreign Runtimes)
+- **Zero-Foreign-Runtime Rule (HARD GATE)**: **NEVER introduce an extra language or runtime** (e.g., Python `.py` or `pre-commit` framework in a Go/Rust/TS repo; Node `package.json`/`husky` in a pure Go/Rust/Python repo) just to write build, quality, lifecycle, or Git-hook scripts—doing so pollutes a single-stack repo into a polyglot repo requiring extra linters/typecheckers. Always use the stack's **own** toolchain (`package.json` / `.mjs` for JS/TS, `go run ./scripts/ctl` for Go, `.cargo/config.toml` alias / `cargo xtask` for Rust, `uv run` for Python, Gradle/dotnet tasks for JVM/.NET; in true polyglot repos, reuse one runtime already in the app stack). Keep Git hooks as 3-line POSIX `#!/bin/sh` shims delegating to the native root command.
+- **Match Entrypoint Shape to Target Archetype** (never add subdirectory `.sh`/`.ps1`/`.bat` scripts):
+  - **Libraries, Plugins (CGO/FFI/Wasm), SDKs & CLI Tools (Non-Daemon)**: Expose **only** `build`, `test`, and `quality`—**NEVER** invent `start`/`stop`/`restart`/`status` daemon controllers when there is no long-running service.
+  - **Single Frontend / Node App**: Manage `dev`, `build`, `test`, and `quality` solely via root `package.json` `scripts`—create zero wrapper scripts.
+  - **Long-Running Services & Multi-Project Repos**: Expose root `dev` / `start [--daemon] [--only <svc>]`, `stop`, `restart`, `status`, and `quality` using the stack's native runner. Record `{ pid, port, cmd, startedAt }` in `out/run/<svc>.json` and daemon logs in `out/logs/<svc>.log`; `stop` kills **only** verified project process trees and confirms port release (never global `killall`/`taskkill /IM`), obeying Non-Intrusive Verification.
 
 ### 5. Establish Unified Quality & LSP Gate (`project-quality`)
 - Load and execute the sibling `project-quality` skill workflow to wire formatting checks, compilation/type-checking, **headless local LSP CLI diagnostics** (`warning`/`info`/`hint` nonzero exit), linting, smoke tests, build output verification into `out/`, version-parity validation, Git hooks, and `docs/quality.md` behind the root `quality` command.
@@ -63,6 +62,7 @@ Always read [templates-and-conventions.md](references/templates-and-conventions.
 - Author concise, high-density `AGENTS.md` (stack, root commands, `docs/` & `out/` invariants, Version SSOT, XERJ prefix, Quality Gate rule), `README.md`, `docs/architecture.md`, and `docs/tasks/.gitkeep` + `docs/adr/.gitkeep`.
 
 ### 7. Full Gate Verification & Baseline Commit
-1. Run the root `quality` command end-to-end (plus `start --daemon` → `status` → `stop` smoke check when lifecycle scripts exist, and XERJ `Post-Edit Sync` if files changed after Step 6).
+1. Run the root `quality` command end-to-end (plus `start --daemon` → `status` → `stop` smoke check for runnable daemon services, and XERJ `Post-Edit Sync` if files changed after Step 6).
 2. Confirm `exit 0`, zero compiler/LSP warnings or hints, all build/log outputs confined strictly inside `out/`, and zero stray root `.md` or build folders (`git status --short` shows `out/` ignored).
-3. **Greenfield Mode only (unborn `HEAD` + Gate `exit 0`)**: Stage tracked files and run `git commit -m "chore: bootstrap project skeleton and quality gate"`. Report commit hash, root commands, XERJ prefix, and Quality Gate status.
+3. **Greenfield Mode only (unborn `HEAD` + Gate `exit 0`)**: Stage tracked baseline files (including any `docs/` planning docs already prepared) and run `git commit -m "chore: bootstrap project skeleton and quality gate"`.
+4. **Completion Boundary**: Report the baseline commit hash, root commands, XERJ prefix, and Quality Gate status, then **stop and yield to the user**—do not proceed into feature/task implementation unless the user explicitly requested continuing past initialization in the same turn.
