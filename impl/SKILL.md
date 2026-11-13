@@ -39,9 +39,9 @@ Before running final convergence gates, verify **every** `- [ ]` Acceptance Crit
 ## 4. Adaptive Review & Convergence Gate
 
 1. Run full relevant tests, an **incremental LSP diagnostic scan** (`warning`/`info`/`hint` via host LSP `diagnostics` on changed files and/or local LSP CLI such as `gopls check -severity=hint`, `pyright`, `cargo clippy --all-targets`), the repository's unified Quality Gate (if configured), and XERJ `Post-Edit Sync` (when declared in `AGENTS.md`).
-2. **Choose Review Tier by Blast Radius**:
-   - **Lightweight Tier (`post-impl` only)**: Localized bug fixes, small self-contained features, or UI refinements touching $\le 3$ core files with no tracked Issue/slice and no public contract or schema changes.
-   - **Full Dual-Axis Tier (`code-review` → `post-impl`)**: Mandatory when (a) implementing a GitHub Issue or `docs/tasks/` slice, (b) spanning $>3$ module files, (c) altering public APIs, IPC/RPC schemas, DB migrations, or state machines, or (d) requested by the user. Fix confirmed in-scope `code-review` findings first, then execute `post-impl`.
+2. **Choose Review Tier by Semantic Change Scope & Blast Radius** (never judge by file count—a 10-file mechanical wiring change can be low-risk while a single-file state/concurrency rewrite is high-risk):
+   - **Lightweight Tier (`post-impl` only)**: Contained behavioral scope—localized bug fixes, UI refinements, single-seam features, or mechanical wiring with straightforward control flow and **zero** changes to shared contracts, core domain invariants, concurrency/lifecycle semantics, or persistence/security models.
+   - **Full Dual-Axis Tier (`code-review` → `post-impl`)**: Mandatory when the change (a) alters public APIs, IPC/RPC wire protocols, DB/storage schemas, or shared domain contracts; (b) rewrites complex control flow, state machines, concurrency/locking, caching/invalidation, auth/security, or error-recovery paths (even within a single file); (c) couples multiple subsystems with non-trivial behavioral interactions; or (d) is explicitly requested by the user. Fix confirmed in-scope `code-review` findings first, then execute `post-impl`.
 
 ## 5. Delivery
 

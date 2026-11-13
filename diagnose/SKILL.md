@@ -31,4 +31,4 @@ Do NOT guess fixes from code inspection before establishing a reproducible pass/
 1. Turn the minimized repro into a permanent behavioral regression test at the right public seam (when a valid seam exists) and watch it fail on the unpatched code.
 2. Apply the minimal root-cause fix and confirm both the regression test and the original scenario pass.
 3. Grep and remove **all** `[DBG-...]` probes and throwaway reproduction scripts.
-4. Hand off into `post-impl` (and `code-review` if the fix spans multiple modules or alters public contracts) before yielding.
+4. Hand off into `post-impl` (and `code-review` first if the fix alters shared contracts, state machines, concurrency/security invariants, or couples multiple subsystems) before yielding.

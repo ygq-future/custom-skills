@@ -19,7 +19,7 @@ A cohesive, minimal-overhead suite of engineering skills for coding agents (Clau
 | [`impl`](./impl) | Execution | Implement features, slices, GitHub Issues, or fixes with seam tests, mandatory AC check-off, and adaptive review gates. | Auto / On Demand |
 | [`diagnose`](./diagnose) | Debugging | Diagnose hard, flaky, or performance bugs with unknown root causes via a fast headless reproduction loop. | Auto / On Demand |
 | [`ui-craft`](./ui-craft) | Frontend / UI | Design, build, polish, or audit UI surfaces with mode-aware aesthetics, complete state matrices, and a11y floor. | Auto / On Demand |
-| [`code-review`](./code-review) | Macro Review | Two-axis parallel review (Spec/AC conformance + Repo standards & design smells) over working-tree or branch diffs. | Auto (Heavy) / On Demand |
+| [`code-review`](./code-review) | Macro Review | Fast two-axis parallel review (Spec/AC conformance + Architecture & repo standards) over pre-packaged diffs. | High-Scope Auto / On Demand |
 | [`post-impl`](./post-impl) | Micro Convergence | Final 7-dimensional cleanup audit eliminating dead code, write-only state, duplicate rules, and LSP `hint/info` drift. | Post-Task Gate |
 | [`arch-optimize`](./arch-optimize) | Architecture | Audit codebase hotspots to surface shallow modules and leaky seams, then plan module-deepening refactors. | User-Initiated Only |
 | [`project-quality`](./project-quality) | Quality Infra | Establish, audit, or maintain a cross-stack quality system with compiler/LSP diagnostics and a unified Quality Gate. | User-Initiated Only |
@@ -29,9 +29,9 @@ A cohesive, minimal-overhead suite of engineering skills for coding agents (Clau
 
 1. **Align & Decompose**: Clear requests go straight to [`impl`](./impl). Ambiguous trade-offs trigger [`clarify`](./clarify); multi-session features use [`breakdown`](./breakdown) to emit vertical slices directly to `docs/tasks/<slug>.md` or GitHub Issues.
 2. **Execute & Verify**: [`impl`](./impl) enforces behavioral tests at public seams, pairs with [`ui-craft`](./ui-craft) for UI surfaces or [`diagnose`](./diagnose) for elusive bugs, and **checks off `- [x]` Acceptance Criteria** in `docs/tasks/` or GitHub Issues (keeping uncommitted issues open until commit/push).
-3. **Adaptive Quality Gates**:
-   - **Localized changes** ($\le 3$ core files, no tracked ticket/contract change) → [`post-impl`](./post-impl).
-   - **Tracked slices, cross-module features, or contract/schema changes** → [`code-review`](./code-review) (2 parallel subagents) followed by [`post-impl`](./post-impl).
+3. **Scope-Driven Quality Gates** (judged by semantic blast radius, never file count):
+   - **Contained scope** (localized fixes, UI tweaks, single-seam features, or mechanical wiring without contract/concurrency/state-machine changes) → [`post-impl`](./post-impl).
+   - **High semantic blast radius** (shared API/IPC/DB contract changes, state-machine/concurrency/auth/recovery rewrites even in one file, or non-trivial cross-subsystem coupling) → [`code-review`](./code-review) (pre-packaged 2-subagent fast review) followed by [`post-impl`](./post-impl).
 4. **Periodic Maintenance**: Run [`project-quality`](./project-quality) to wire unified compiler + LSP CLI gates, and [`arch-optimize`](./arch-optimize) to deepen high-churn shallow modules.
 
 ### Repository Layout
@@ -67,7 +67,7 @@ custom-skills/
 | [`impl`](./impl) | 编码执行 | 端到端实现功能、切片、Issue 或缺陷修复，内置公共切面测试、强制 AC 打勾核销与分级审查分流。 | 自动匹配 / 按需调用 |
 | [`diagnose`](./diagnose) | 疑难排障 | 针对根因未知的复杂/偶发缺陷与性能退化，构建后台最小变红复现环并逐项证伪。 | 自动匹配 / 按需调用 |
 | [`ui-craft`](./ui-craft) | 界面设计 | 区分工具态（高密度桌面审美）与展示态，强制交互全状态矩阵、封装原语与无头非侵入验证。 | 自动匹配 / 按需调用 |
-| [`code-review`](./code-review) | 宏观审查 | 基于双独立子 Agent 并行审查未提交工作区或分支 Diff（Spec/AC 一致性 + 规范与设计坏味道）。 | 重度变更自动 / 按需 |
+| [`code-review`](./code-review) | 宏观审查 | 基于预打包上下文的极速双子代理并行审查（Spec/AC 行为正确性 + 架构边界与规范）。 | 广域变更自动 / 按需 |
 | [`post-impl`](./post-impl) | 微观收敛 | 任务收尾 7 维收敛清扫，消除死代码、只写状态、重复业务规则与本地 LSP `hint/info` 异味。 | 任务收尾必跑门禁 |
 | [`arch-optimize`](./arch-optimize) | 架构优化 | 扫描代码库高频变更热点，识别浅模块透传与切面泄漏，输出非侵入式模块加深重构方案。 | 仅限用户显式调用 |
 | [`project-quality`](./project-quality) | 质量基建 | 建立、审计并维护跨语言统一质量门禁（Quality Gate）与编译器/LSP CLI 诊断对齐体系。 | 仅限用户显式调用 |
@@ -77,7 +77,7 @@ custom-skills/
 
 1. **对齐与拆解**：清晰需求直入 [`impl`](./impl) 开工；存在歧义先经 [`clarify`](./clarify) 决策收敛；跨模块大特性调用 [`breakdown`](./breakdown) 一步生成垂直切片（存放于 `docs/tasks/<slug>.md` 或创建 GitHub Issues，绝不在根目录生成冗余隐藏目录）。
 2. **实现与验收核销**：[`impl`](./impl) 在公共接口切面编写行为测试，涉及界面时联动 [`ui-craft`](./ui-craft)，遇到未知根因疑难杂症切换 [`diagnose`](./diagnose)；收尾前**逐条核对并勾选 `- [x]` Acceptance Criteria**（GitHub Issue 在本地未提交状态下先完成勾选与评论留证，待提交推送时再行关单）。
-3. **分级审查门禁**：
-   - **轻量改动**（$\le 3$ 个核心文件、无独立单据且未改动公共契约/Schema）→ 直接执行 [`post-impl`](./post-impl)。
-   - **重度改动**（关联 Issue/`docs/tasks/` 切片、跨模块修改或涉及公共契约/Schema）→ 先执行双轨 [`code-review`](./code-review)，修复问题后再执行 [`post-impl`](./post-impl)。
+3. **按影响域分流的审查门禁**（依据语义影响半径而非改动文件数）：
+   - **收敛影响域**（局部修复、UI 微调、单切面功能或纯机械接线，未触碰共享契约/状态机/并发/安全模型）→ 直接执行 [`post-impl`](./post-impl)。
+   - **高语义爆炸半径**（修改公共 API/IPC/DB 契约、重写复杂状态机/并发锁/缓存失效/鉴权恢复逻辑——哪怕仅在单文件内，或产生跨子系统非平凡耦合）→ 先执行预打包极速双轨 [`code-review`](./code-review)，修复问题后再执行 [`post-impl`](./post-impl)。
 4. **基建与架构演进**：项目初期或维护期手动调用 [`project-quality`](./project-quality) 固化统一门禁与本地 LSP Gate；阶段性手动调用 [`arch-optimize`](./arch-optimize) 对高频热点做深模块重构评估。
